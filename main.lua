@@ -12,6 +12,10 @@ tile_y = 3
 visited_cells = {}
 last_cells = {}
 lines = {}
+borders = {}
+
+border_thickness = 2
+borders_made = false
 
 math.randomseed(os.time())
 show_lines = true
@@ -94,7 +98,7 @@ function pesto.update(dt)
         table.insert(directions, 3)
     end
 
-    if pesto.mouse.isPressed(1) or false then
+    if pesto.mouse.isPressed(1) or true then
 
         if #directions > 0 then
 
@@ -124,17 +128,83 @@ function pesto.update(dt)
             tile_x = new_tile_x
             tile_y = new_tile_y
 
-        else
-            
-            if #visited_cells < cells_number then
+        else 
+            if #visited_cells < cells_number then --if there are no directions available go back to the previous cell
                 tile_x = last_cells[#last_cells - 1][1]
                 tile_y = last_cells[#last_cells - 1][2]
                 table.remove(last_cells, #last_cells)
+            
+            --the program stops only when all the cells have been filled
+            --draw borders between unconnected cells to make the maze
             else
                 
-            end
-            
+                if borders_made == false then
+                    for x = 1, window_width - 2 * border_space, 1 do
+                        for y = 1, window_height - 2 * border_space, 1 do
 
+                            pesto.graphics.setColor(0, 0, 0)
+                            
+                            --check if there are lines between the centers of rectangles
+                            --if there aren't, in both ways, create a border
+                            if (not tableContains(lines, {x, y, x + 1, y})) and (not tableContains(lines, {x + 1, y, x, y})) then --right - left
+                                border_x = tile_size * border_space + x * tile_size - 1
+                                border_y = tile_size * border_space + (y - 1) * tile_size
+                                border_width = border_thickness
+                                border_height = tile_size
+
+                                new_border = {border_x, border_y, border_width, border_height}
+
+                                if not tableContains(borders, new_border) then
+                                    table.insert(borders, new_border)
+                                end
+                            end
+
+                            if (not tableContains(lines, {x, y, x - 1, y})) and (not tableContains(lines, {x - 1, y, x, y})) then --left - right
+                                border_x = tile_size * border_space + (x - 1) * tile_size - 1
+                                border_y = tile_size * border_space + (y - 1) * tile_size
+                                border_width = border_thickness
+                                border_height = tile_size
+            
+                                new_border = {border_x, border_y, border_width, border_height}
+            
+                                if not tableContains(borders, new_border) then
+                                    table.insert(borders, new_border)
+                                end
+                            end
+
+                            if (not tableContains(lines, {x, y, x, y + 1})) and (not tableContains(lines, {x, y + 1, x, y})) then --bottom - up
+                                border_x = tile_size * border_space + (x - 1) * tile_size
+                                border_y = tile_size * border_space + y * tile_size - 1
+                                border_width = tile_size
+                                border_height = border_thickness
+            
+                                new_border = {border_x, border_y, border_width, border_height}
+            
+                                if not tableContains(borders, new_border) then
+                                    table.insert(borders, new_border)
+                                end
+                            end
+
+                            if (not tableContains(lines, {x, y, x, y - 1})) and (not tableContains(lines, {x, y - 1, x, y})) then --up - bottom
+                                border_x = tile_size * border_space + (x - 1) * tile_size
+                                border_y = tile_size * border_space + (y - 1) * tile_size - 1
+                                border_width = tile_size
+                                border_height = border_thickness
+            
+                                new_border = {border_x, border_y, border_width, border_height}
+            
+                                if not tableContains(borders, new_border) then
+                                    table.insert(borders, new_border)
+                                end
+                            end
+
+                            borders_made = true
+                            show_lines = false
+
+                        end
+                    end
+                end
+            end
         end
     end
 end
@@ -150,7 +220,7 @@ function pesto.draw()
     --draw main grid
     for i = border_space, window_width - 1 - border_space, 1 do
         for j = border_space, window_height - 1 - border_space, 1 do
-
+            
             pesto.graphics.setColor(255, 255, 255)
             --draw grid
             line_rectangle(i * tile_size, j * tile_size, tile_size, tile_size)
@@ -163,10 +233,14 @@ function pesto.draw()
         end
     end
 
-    --draw current rectangle
-    pesto.graphics.setColor(255, 0, 0)
-    pesto.graphics.rectangle((tile_x - 1) * tile_size + tile_size * border_space, (tile_y - 1) * tile_size + tile_size * border_space, tile_size, tile_size)
+    --draw current rectangle till the maze is complete
+    if show_lines then
+        pesto.graphics.setColor(255, 0, 0)
+        pesto.graphics.rectangle((tile_x - 1) * tile_size + tile_size * border_space,
+                (tile_y - 1) * tile_size + tile_size * border_space, tile_size, tile_size)
+    end
 
+    --lines that connect the center of connected cells, kinda like the roads you can take
     if show_lines then
         if #lines > 0 then
             for _, v in pairs(lines) do
@@ -176,6 +250,14 @@ function pesto.draw()
                         (v[3] - 1) * tile_size + tile_size * border_space + tile_size / 2,
                         (v[4] - 1) * tile_size + tile_size * border_space + tile_size / 2)
             end
+        end
+    end
+
+    --draw borders
+    if #visited_cells == cells_number and borders_made then
+        for _, v in pairs(borders) do
+            pesto.graphics.setColor(0, 0, 0)
+            pesto.graphics.rectangle(v[1], v[2], v[3], v[4])
         end
     end
 end
