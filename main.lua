@@ -51,7 +51,27 @@ function pesto.update(dt)
 
     current_cell = {tile_x, tile_y}
     table.insert(visited_cells, current_cell)
+    directions = {1, 2, 3, 4}
 
+    if not tableContains(last_cells, current_cell) then
+        table.insert(last_cells, current_cell)
+    end
+
+    if current_cell[1] == 1 then --when the cell is adjacent to the left border remove left direction
+        table.remove(directions, 4)
+    elseif current_cell[1] == window_width - 2 * border_space then --when the cell is adjacent to the right border remove right direction
+        table.remove(directions, 2)
+    end
+
+    if current_cell[2] == 1 then --when the cell is adjacent to the top border remove up direction
+        table.remove(directions, 1)
+    elseif current_cell[2] == window_height - 2 * border_space then --when the cell is adjacent to the bottom border remove down direction
+        if #directions == 4 or current_cell[1] == 1 then --if a direction as already been removed the index at which remove the element may need to be adjusted
+            table.remove(directions, 3)
+        else
+            table.remove(directions, 2) 
+        end
+    end
     
 
 end
@@ -66,9 +86,12 @@ function pesto.draw()
             --drawn ractagles center
             pesto.graphics.rectangle(i * tile_size + (tile_size / 2) - 1, j * tile_size + (tile_size / 2) - 1, 2, 2)
             --draw rectangles coordinates on them
-            pesto.graphics.text((i.. ", ".. j), (i * tile_size + (tile_size / 2) - 1), (j * tile_size + (tile_size / 2) - 5))
+            pesto.graphics.text((i - border_space + 1 .. ", ".. j - border_space + 1), (i * tile_size + (tile_size / 2) - 1), (j * tile_size + (tile_size / 2) - 5))
 
         end
     end
+
+    pesto.graphics.text((table.concat(directions, " ")), 10, 10)
+    
 
 end
