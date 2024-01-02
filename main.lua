@@ -1,128 +1,74 @@
---screen dimensions
 screen_width = pesto.window.getWidth()
 screen_height = pesto.window.getHeight()
-center_x = screen_width / 2
-center_y = screen_height / 2
+tile_size = 60
+window_width = screen_width / tile_size
+window_height = screen_height / tile_size
+border_space = 1
+cells_number = (window_width - 2 * border_space) * (window_height - 2 * border_space)
 
---math utilities
-sin = math.sin
-cos = math.cos
-tan = math.tan
-floor = math.floor
-pi = math.pi
-origin = {0, 0}
+tile_x = 1
+tile_y = 1
 
-function sign(n)
-    if n > 0 then
-        return 1
-    elseif n < 0 then
-        return -1
-    else
-        return 0
-    end
+visited_cells = {}
+last_cells = {}
+
+--directions: 1 up, 2 right, 3 down, 4 left
+
+--draw unfilled rectangles with thickness of 1
+function line_rectangle(x, y, width, height)
+    pesto.graphics.rectangle(x, y, width, 1)
+    pesto.graphics.rectangle(x + width - 1, y, 1, height)
+    pesto.graphics.rectangle(x, y, 1, height)
+    pesto.graphics.rectangle(x, y + height - 1, width, 1)
 end
 
---math modes
-auto_slider = true
-rotation_enabled = false
-draw_lines = true
-draw_points = true
-even_function_mode = true
-odd_function_mode = false
+--check if 2 tables are equal
+function tableEquals(table1, table2)
+    if #table1 ~= #table2 then
+        return false
+    end
 
---variables for the slider
-a = 0
-b = 1
+    for key, value in pairs(table1) do
+        if value ~= table2[key] then
+            return false
+        end
+    end
+
+    return true
+end
+
+--check if a table contains another one
+function tableContains(table, targetTable)
+    for _, value in pairs(table) do
+        if type(value) == "table" and tableEquals(value, targetTable) then
+            return true
+        end
+    end
+    return false
+end
 
 function pesto.update(dt)
 
-    --slider, can be done in lots of ways
-    if auto_slider then
-        if a > 7 then
-            b = -1
-        elseif a < -7 then
-            b = 1
-        end
+    current_cell = {tile_x, tile_y}
+    table.insert(visited_cells, current_cell)
 
-        a = a + b*0.01
-    end
-
-    --graph parameters
-    points = {}
-    range = {-300, 300}
-    step = 1
-
-    --create all graph points
-    for x = range[1], range[2], step do
-        y = 10*cos(x/10) --y = f(x)
-        y = floor(y + 0.5) --rounding the y to the closest integer, by default it's made with floor
-        
-        --distance with respect to a fixed point
-        distance = math.sqrt((x - origin[1])^2 + (y - origin[2])^2)
-
-        --angle of rotation
-        if rotation_enabled then
-            x1, y1 = x, y
-            alpha = a*distance*10
-            alpha = alpha/180 * pi
-
-            --rotation equations of a point of an angle with respect to the origin
-            x = x1*cos(alpha) - y1*sin(alpha)
-            y= x1*sin(alpha) + y1*cos(alpha)
-        end
-
-        --convert x and y from graph to screen coords
-        screen_x = center_x + x
-        screen_y = center_y - y
-
-        --add new point to the graph
-        new_point = {screen_x, screen_y}
-        table.insert(points, new_point)
-    end
+    
 
 end
 
 function pesto.draw()
+    
+    --draw main grid
+    for i = border_space, window_width - 1 - border_space, 1 do
+        for j = border_space, window_height - 1 - border_space, 1 do
 
-    --x and y axis
-    pesto.graphics.rectangle(center_x, 0, 1, screen_height)
-    pesto.graphics.rectangle(0, center_y, screen_width, 1)
+            line_rectangle(i * tile_size, j * tile_size, tile_size, tile_size)
+            --drawn ractagles center
+            pesto.graphics.rectangle(i * tile_size + (tile_size / 2) - 1, j * tile_size + (tile_size / 2) - 1, 2, 2)
+            --draw rectangles coordinates on them
+            pesto.graphics.text((i.. ", ".. j), (i * tile_size + (tile_size / 2) - 1), (j * tile_size + (tile_size / 2) - 5))
 
-    --draw all points
-    if draw_points then
-        for _, point in pairs(points) do
-            pesto.graphics.rectangle(point[1], point[2], 1, 1)
         end
     end
 
-    --draw lines to connect points, might be not so useful
-    --moving the vertex from which the line are drown to make graph better looking and simmetric in some cases
-    if draw_lines then
-        
-        --use with even function, of course
-        if even_function_mode then
-            for i = 1, #points - 1, 1 do
-                if points[i][1] < center_x and points[i+1][1] <= center_x then
-                    pesto.graphics.line(points[i][1], points[i][2], points[i + 1][1], points[i + 1][2])
-                elseif points[i][1] >= center_x and points[i+1][1] > center_x then
-                    pesto.graphics.line(points[i][1] + 1, points[i][2], points[i + 1][1] + 1, points[i + 1][2])
-                end
-            end
-        
-        --use with odd function, but not with all as for some it may just worsen the graph
-        elseif odd_function_mode then
-            for i = 1, #points - 1, 1 do
-                if points[i][1] < center_x and points[i+1][1] <= center_x then
-                    pesto.graphics.line(points[i][1], points[i][2], points[i + 1][1], points[i + 1][2])
-                elseif points[i][1] >= center_x and points[i+1][1] > center_x then
-                    pesto.graphics.line(points[i][1] + 1, points[i][2] + 1, points[i + 1][1] + 1, points[i + 1][2] + 1)
-                end
-            end
-
-        else
-            for i = 1, #points - 1, 1 do
-                pesto.graphics.line(points[i][1], points[i][2], points[i + 1][1], points[i + 1][2])
-            end
-        end
-    end
 end
